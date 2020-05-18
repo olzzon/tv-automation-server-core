@@ -73,6 +73,11 @@ export const SourceLayerItemContainer = class extends MeteorReactComponent<IProp
 					case SourceLayerType.TRANSITION:
 						fileName = (piece.content as VTContent).fileName
 						break
+					case SourceLayerType.TRANSITION:
+						if (piece.content.fileName) {
+							objId = (piece.content as VTContent).fileName.toUpperCase()
+						}
+						break
 				}
 				objId = fileName ? fileName.toUpperCase() : undefined
 			}
