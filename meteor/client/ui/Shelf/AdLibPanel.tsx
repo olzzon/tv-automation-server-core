@@ -637,7 +637,7 @@ export function fetchAndFilter(props: Translated<IAdLibPanelProps>): IAdLibPanel
 							sourceLayerId,
 							outputLayerId,
 							_rank: action.display._rank || 0,
-							content: content,
+							content: content ? (content.actionContent as SomeContent) : undefined,
 							adlibAction: action,
 							tags: action.display.tags,
 						}),
@@ -781,7 +781,7 @@ export function fetchAndFilter(props: Translated<IAdLibPanelProps>): IAdLibPanel
 										sourceLayerId,
 										outputLayerId,
 										_rank: action.display._rank || 0,
-										content: content,
+										content: content ? (content.actionContent as SomeContent) : undefined,
 										adlibAction: action,
 										tags: action.display.tags,
 									})

@@ -400,7 +400,7 @@ export const GlobalAdLibPanel = translateWithTracker<IProps, IState, ITrackedPro
 					sourceLayerId,
 					outputLayerId,
 					_rank: action.display._rank || 0,
-					content: content,
+					content: content ? (content.actionContent as SomeContent) : undefined,
 					adlibAction: action,
 				})
 			})
