@@ -452,8 +452,9 @@ export class ActionExecutionContext extends ShowStyleContext implements IActionE
 			timeOffset
 		)
 	}
-	removePieceInstances(_part: 'next', pieceInstanceIds: string[]): string[] {
-		const partInstanceId = this.rundownPlaylist.nextPartInstanceId // this._getPartInstanceId(part)
+	removePieceInstances(part: 'current' | 'next', pieceInstanceIds: string[]): string[] {
+		const partInstanceId =
+			part === 'current' ? this.rundownPlaylist.currentPartInstanceId : this.rundownPlaylist.nextPartInstanceId // this._getPartInstanceId(part)
 		if (!partInstanceId) {
 			throw new Error('Cannot remove pieceInstances when no selected partInstance')
 		}
