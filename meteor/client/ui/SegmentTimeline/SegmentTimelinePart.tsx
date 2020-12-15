@@ -338,10 +338,12 @@ interface IProps {
 	relative: boolean
 	totalSegmentDuration?: number
 	firstPartInSegment?: PartUi
+	lastPartInSegment?: PartUi
 	onContextMenu?: (contextMenuContext: IContextMenuContext) => void
 	isLastInSegment: boolean
 	isAfterLastValidInSegmentAndItsLive: boolean
 	isLastSegment: boolean
+	isBudgetGap: boolean
 }
 
 interface IState {
@@ -354,7 +356,7 @@ interface IState {
 	highlight: boolean
 }
 
-const LIVE_LINE_TIME_PADDING = 150
+export const LIVE_LINE_TIME_PADDING = 150
 
 const CARRIAGE_RETURN_ICON = (
 	<div className="segment-timeline__part__nextline__label__carriage-return">
@@ -397,7 +399,6 @@ export const SegmentTimelinePart = withTranslation()(
 
 				const isLive = this.props.playlist.currentPartInstanceId === partInstance._id
 				const isNext = this.props.playlist.nextPartInstanceId === partInstance._id
-				const startedPlayback = partInstance.timings?.startedPlayback
 
 				this.state = {
 					isLive,
@@ -406,19 +407,10 @@ export const SegmentTimelinePart = withTranslation()(
 					isInsideViewport: false,
 					highlight: false,
 					liveDuration: isLive
-						? Math.max(
-								(startedPlayback &&
-									props.timingDurations.partDurations &&
-									SegmentTimelinePart0.getCurrentLiveLinePosition(
-										props.part,
-										props.timingDurations.currentTime || getCurrentTime()
-									) + SegmentTimelinePart0.getLiveLineTimePadding(props.timeScale)) ||
-									0,
-								props.timingDurations.partDurations
-									? partInstance.part.displayDuration ||
-											props.timingDurations.partDurations[unprotectString(partInstance.part._id)]
-									: 0
-						  )
+						? (props.timingDurations &&
+								props.timingDurations.partLiveDisplayDurations &&
+								props.timingDurations.partLiveDisplayDurations[unprotectString(partInstance.part._id)]) ||
+						  0
 						: 0,
 				}
 			}
@@ -442,47 +434,11 @@ export const SegmentTimelinePart = withTranslation()(
 					!!startedPlayback &&
 					!nextProps.part.instance.timings?.duration
 
-				let liveDuration = 0
-				if (!isDurationSettling) {
-					// if the duration isn't settling, calculate the live line postion and add some liveLive time padding
-					if (isLive && !nextProps.autoNextPart && !nextPartInner.autoNext) {
-						liveDuration = Math.max(
-							(startedPlayback &&
-								nextProps.timingDurations.partDurations &&
-								(nextProps.relative
-									? SegmentTimelinePart0.getCurrentLiveLinePosition(
-											nextProps.part,
-											nextProps.timingDurations.currentTime || getCurrentTime()
-									  )
-									: SegmentTimelinePart0.getCurrentLiveLinePosition(
-											nextProps.part,
-											nextProps.timingDurations.currentTime || getCurrentTime()
-									  ) + SegmentTimelinePart0.getLiveLineTimePadding(nextProps.timeScale))) ||
-								0,
-							nextProps.timingDurations.partDurations
-								? nextPartInner.displayDuration ||
-										nextProps.timingDurations.partDurations[unprotectString(nextPartInner._id)]
-								: 0
-						)
-					}
-				} else {
-					// if the duration is settling, just calculate the current liveLine position and show without any padding
-					if (!nextProps.autoNextPart && !nextPartInner.autoNext) {
-						liveDuration = Math.max(
-							(startedPlayback &&
-								nextProps.timingDurations.partDurations &&
-								SegmentTimelinePart0.getCurrentLiveLinePosition(
-									nextProps.part,
-									nextProps.timingDurations.currentTime || getCurrentTime()
-								)) ||
-								0,
-							nextProps.timingDurations.partDurations
-								? nextPartInner.displayDuration ||
-										nextProps.timingDurations.partDurations[unprotectString(nextPartInner._id)]
-								: 0
-						)
-					}
-				}
+				let liveDuration =
+					(nextProps.timingDurations &&
+						nextProps.timingDurations.partLiveDisplayDurations &&
+						nextProps.timingDurations.partLiveDisplayDurations[unprotectString(nextPartInner._id)]) ||
+					0
 
 				const isInsideViewport =
 					nextProps.relative ||
@@ -628,6 +584,21 @@ export const SegmentTimelinePart = withTranslation()(
 			}
 
 			static getPartStartsAt(props: WithTiming<IProps>): number {
+				if (props.isBudgetGap) {
+					return Math.max(
+						0,
+						(props.lastPartInSegment &&
+							props.firstPartInSegment &&
+							props.timingDurations.partDisplayStartsAt &&
+							props.timingDurations.partDisplayDurations &&
+							props.timingDurations.partDisplayStartsAt[unprotectString(props.lastPartInSegment.instance.part._id)] -
+								props.timingDurations.partDisplayStartsAt[unprotectString(props.firstPartInSegment.instance.part._id)] +
+								props.timingDurations.partDisplayDurations[
+									unprotectString(props.lastPartInSegment.instance.part._id)
+								]) ||
+							0
+					)
+				}
 				return Math.max(
 					0,
 					(props.firstPartInSegment &&
@@ -829,7 +800,7 @@ export const SegmentTimelinePart = withTranslation()(
 								<div className="segment-timeline__part__future-shade" style={this.getFutureShadeStyle()}></div>
 							)}
 							{this.renderTimelineOutputGroups(this.props.part)}
-							{this.props.isLastInSegment && (
+							{this.props.isLastInSegment && !this.props.isBudgetGap && (
 								<div
 									className={ClassNames(
 										'segment-timeline__part__nextline',

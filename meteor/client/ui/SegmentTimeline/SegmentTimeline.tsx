@@ -37,11 +37,12 @@ import { getAllowSpeaking } from '../../lib/localStorage'
 import { showPointerLockCursor, hidePointerLockCursor } from '../../lib/PointerLockCursor'
 import { Settings } from '../../../lib/Settings'
 import { MAGIC_TIME_SCALE_FACTOR, RundownViewEvents, IContextMenuContext } from '../RundownView'
-import { literal, unprotectString } from '../../../lib/lib'
+import { literal, protectString, unprotectString } from '../../../lib/lib'
 import { SegmentId } from '../../../lib/collections/Segments'
 import { PartId } from '../../../lib/collections/Parts'
 import { contextMenuHoldToDisplayTime } from '../../lib/lib'
 import { WarningIconSmall, CriticalIconSmall } from '../../lib/notificationIcons'
+import { wrapPartToTemporaryInstance } from '../../../lib/collections/PartInstances'
 
 interface IProps {
 	id: string
@@ -81,6 +82,8 @@ interface IProps {
 	segmentRef?: (el: SegmentTimelineClass, segmentId: SegmentId) => void
 	isLastSegment: boolean
 	lastValidPartIndex: number | undefined
+	budgetGap: number
+	budgetDuration?: number
 }
 interface IStateHeader {
 	timelineWidth: number
@@ -185,6 +188,7 @@ const SegmentTimelineZoom = class SegmentTimelineZoom extends React.Component<
 					isLastInSegment={false}
 					isAfterLastValidInSegmentAndItsLive={false}
 					isLastSegment={false}
+					isBudgetGap={true}
 				/>
 			)
 		})
@@ -668,17 +672,71 @@ export class SegmentTimelineClass extends React.Component<Translated<IProps>, IS
 							onPieceDoubleClick={this.props.onItemDoubleClick}
 							scrollWidth={this.state.timelineWidth / this.props.timeScale}
 							firstPartInSegment={this.props.parts[0]}
+							lastPartInSegment={this.props.parts[this.props.parts.length - 1]}
 							isLastSegment={this.props.isLastSegment}
-							isLastInSegment={index === this.props.parts.length - 1}
+							isLastInSegment={index === this.props.parts.length - 1 && this.props.budgetGap <= 0}
 							isAfterLastValidInSegmentAndItsLive={
 								index === (this.props.lastValidPartIndex || 0) + 1 &&
 								previousPartIsLive &&
 								!!this.props.playlist.nextPartInstanceId
 							}
 							part={part}
+							isBudgetGap={false}
 						/>
 					)
 				})}
+				{this.props.budgetGap > 0 && (
+					<SegmentTimelinePart
+						key={'gap'}
+						segment={this.props.segment}
+						playlist={this.props.playlist}
+						studio={this.props.studio}
+						collapsedOutputs={this.props.collapsedOutputs}
+						isCollapsed={this.props.isCollapsed}
+						scrollLeft={this.props.scrollLeft}
+						timeScale={this.props.timeScale}
+						autoNextPart={this.props.autoNextPart}
+						followLiveLine={this.props.followLiveLine}
+						liveLineHistorySize={this.props.liveLineHistorySize}
+						livePosition={this.props.livePosition}
+						onScroll={this.props.onScroll}
+						onCollapseOutputToggle={this.props.onCollapseOutputToggle}
+						onCollapseSegmentToggle={this.props.onCollapseSegmentToggle}
+						onFollowLiveLine={this.props.onFollowLiveLine}
+						onContextMenu={this.props.onContextMenu}
+						relative={false}
+						onPieceClick={this.props.onItemClick}
+						onPieceDoubleClick={this.props.onItemDoubleClick}
+						scrollWidth={this.state.timelineWidth / this.props.timeScale}
+						firstPartInSegment={this.props.parts[0]}
+						lastPartInSegment={this.props.parts[this.props.parts.length - 1]}
+						isLastSegment={this.props.isLastSegment}
+						isLastInSegment={true}
+						isAfterLastValidInSegmentAndItsLive={
+							this.props.parts.length === (this.props.lastValidPartIndex || 0) + 1 &&
+							partIsLive &&
+							!!this.props.playlist.nextPartInstanceId
+						}
+						isBudgetGap={true}
+						part={{
+							partId: protectString('gap'),
+							instance: wrapPartToTemporaryInstance({
+								_id: protectString('gap'),
+								_rank: 0,
+								segmentId: this.props.segment._id,
+								rundownId: this.props.segment.rundownId,
+								externalId: 'gap',
+								gap: true,
+								title: 'gap',
+								invalid: true,
+							}),
+							pieces: [],
+							renderedDuration: this.props.budgetGap,
+							startsAt: 0,
+							willProbablyAutoNext: false,
+						}}
+					/>
+				)}
 			</React.Fragment>
 		)
 	}
@@ -745,6 +803,15 @@ export class SegmentTimelineClass extends React.Component<Translated<IProps>, IS
 						)
 					}
 				})
+		}
+	}
+
+	renderEditorialLine() {
+		if (this.props.budgetDuration !== undefined) {
+			let lineStyle = {
+				left: this.props.budgetDuration * this.props.timeScale - this.props.scrollLeft * this.props.timeScale + 'px',
+			}
+			return <div className="segment-timeline__editorialline" style={lineStyle}></div>
 		}
 	}
 
@@ -866,6 +933,8 @@ export class SegmentTimelineClass extends React.Component<Translated<IProps>, IS
 								partIds={this.props.parts
 									.filter((item) => item.instance.timings?.duration === undefined)
 									.map((item) => item.instance.part._id)}
+								budgetDuration={this.props.budgetDuration}
+								livePosition={this.props.isLiveSegment ? this.props.livePosition : 0}
 							/>
 						)}
 				</div>
@@ -901,6 +970,7 @@ export class SegmentTimelineClass extends React.Component<Translated<IProps>, IS
 							{this.renderEndOfSegment()}
 						</ErrorBoundary>
 					</div>
+					{this.renderEditorialLine()}
 					{this.renderLiveLine()}
 				</div>
 				<ErrorBoundary>
