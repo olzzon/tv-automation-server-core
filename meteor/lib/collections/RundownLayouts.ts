@@ -325,6 +325,7 @@ export interface RundownViewLayout extends RundownLayoutBase {
 	shelfLayout: RundownLayoutId
 	miniShelfLayout: RundownLayoutId
 	rundownHeaderLayout: RundownLayoutId
+	liveLineProps?: RequiresActiveLayers
 }
 
 export interface RundownLayoutShelfBase extends RundownLayoutBase {

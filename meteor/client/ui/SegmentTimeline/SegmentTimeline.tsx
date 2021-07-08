@@ -66,6 +66,7 @@ interface IProps {
 	followLiveLine: boolean
 	liveLineHistorySize: number
 	livePosition: number
+	displayLiveLineCounter: boolean
 	autoNextPart: boolean
 	onScroll: (scrollLeft: number, event: any) => void
 	onZoomChange: (newScale: number, event: any) => void
@@ -671,11 +672,13 @@ export class SegmentTimelineClass extends React.Component<Translated<IProps>, IS
 						{t('On Air')}
 					</div>
 					<div className="segment-timeline__liveline__timecode">
-						<CurrentPartRemaining
-							currentPartInstanceId={this.props.playlist.currentPartInstanceId}
-							speaking={getAllowSpeaking()}
-							heavyClassName="overtime"
-						/>
+						{this.props.displayLiveLineCounter && (
+							<CurrentPartRemaining
+								currentPartInstanceId={this.props.playlist.currentPartInstanceId}
+								speaking={getAllowSpeaking()}
+								heavyClassName="overtime"
+							/>
+						)}
 						{this.props.autoNextPart ? (
 							<div className="rundown-view__part__icon rundown-view__part__icon--auto-next"></div>
 						) : (
