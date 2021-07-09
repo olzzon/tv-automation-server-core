@@ -115,6 +115,7 @@ interface IProps {
 	ownCurrentPartInstance: PartInstance | undefined
 	ownNextPartInstance: PartInstance | undefined
 	rundownViewLayout: RundownViewLayout | undefined
+	countdownToSegmentRequireLayers: string[] | undefined
 }
 interface IState {
 	scrollLeft: number
@@ -142,6 +143,7 @@ interface ITrackedProps {
 	hasAlreadyPlayed: boolean
 	lastValidPartIndex: number | undefined
 	displayLiveLineCounter: boolean
+	showCountdownToSegment: boolean
 }
 export const SegmentTimelineContainer = translateWithTracker<IProps, IState, ITrackedProps>(
 	(props: IProps) => {
@@ -158,6 +160,7 @@ export const SegmentTimelineContainer = translateWithTracker<IProps, IState, ITr
 				hasAlreadyPlayed: false,
 				lastValidPartIndex: undefined,
 				displayLiveLineCounter: true,
+				showCountdownToSegment: true,
 			}
 		}
 
@@ -269,6 +272,15 @@ export const SegmentTimelineContainer = translateWithTracker<IProps, IState, ITr
 			displayLiveLineCounter = active
 		}
 
+		let showCountdownToSegment = true
+		if (props.countdownToSegmentRequireLayers?.length) {
+			let sourcelayersInSegment = o.parts
+				.map((pa) => pa.pieces.map((pi) => pi.sourceLayer?._id))
+				.flat()
+				.filter((s) => !!s) as string[]
+			showCountdownToSegment = props.countdownToSegmentRequireLayers.some((s) => sourcelayersInSegment.includes(s))
+		}
+
 		return {
 			segmentui: o.segmentExtended,
 			parts: o.parts,
@@ -278,6 +290,7 @@ export const SegmentTimelineContainer = translateWithTracker<IProps, IState, ITr
 			hasGuestItems: o.hasGuestItems,
 			lastValidPartIndex,
 			displayLiveLineCounter,
+			showCountdownToSegment,
 		}
 	},
 	(data: ITrackedProps, props: IProps, nextProps: IProps): boolean => {
@@ -290,7 +303,8 @@ export const SegmentTimelineContainer = translateWithTracker<IProps, IState, ITr
 			props.segmentId !== nextProps.segmentId ||
 			props.segmentRef !== nextProps.segmentRef ||
 			props.timeScale !== nextProps.timeScale ||
-			!equalSets(props.segmentsIdsBefore, nextProps.segmentsIdsBefore)
+			!equalSets(props.segmentsIdsBefore, nextProps.segmentsIdsBefore) ||
+			!_.isEqual(props.countdownToSegmentRequireLayers, nextProps.countdownToSegmentRequireLayers)
 		) {
 			return true
 		}
@@ -969,6 +983,7 @@ export const SegmentTimelineContainer = translateWithTracker<IProps, IState, ITr
 						isLastSegment={this.props.isLastSegment}
 						lastValidPartIndex={this.props.lastValidPartIndex}
 						onHeaderNoteClick={this.props.onHeaderNoteClick}
+						showCountdownToSegment={this.props.showCountdownToSegment}
 					/>
 				)) ||
 				null
