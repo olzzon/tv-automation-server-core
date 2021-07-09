@@ -215,6 +215,7 @@ export class RundownPlaylist implements DBRundownPlaylist {
 				expectedDuration: 1,
 				expectedEnd: 1,
 				showStyleBaseId: 1,
+				endIsBreak: 1,
 			},
 		})
 		const segments = Segments.find(
